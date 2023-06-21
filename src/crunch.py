@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#python3 crunch.py /root/imgai/Crunch/src/testfiles/cat.png --output_dir /root/imgai/Crunch/src/testfiles/
 
 # ==================================================================
 #  crunch
