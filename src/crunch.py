@@ -17,6 +17,7 @@ import struct
 import subprocess
 import time
 from subprocess import CalledProcessError
+import argparse
 
 from multiprocessing import Lock, Pool, cpu_count
 
@@ -237,8 +238,8 @@ def main(argv):
 # ///////////////////////
 
 
-def optimize_png(png_path):
-    img = ImageFile(png_path)
+def optimize_png(png_path, output_dir=None):
+    img = ImageFile(png_path, output_dir)
 
     # define pngquant and zopflipng paths
     PNGQUANT_EXE_PATH = get_pngquant_path()
@@ -411,22 +412,39 @@ def fix_filepath_args(args):
     return arg_list
 
 
+#def get_pngquant_path():
+#    if sys.argv[1] == "--gui":
+#        return "./pngquant"
+#    elif sys.argv[1] == "--service":
+#        return "/Applications/Crunch.app/Contents/Resources/pngquant"
+#    else:
+#        return PNGQUANT_CLI_PATH
+#
+#
+#def get_zopflipng_path():
+#    if sys.argv[1] == "--gui":
+#        return "./zopflipng"
+#    elif sys.argv[1] == "--service":
+#        return "/Applications/Crunch.app/Contents/Resources/zopflipng"
+#    else:
+#        return ZOPFLIPNG_CLI_PATH
+
+
 def get_pngquant_path():
     if sys.argv[1] == "--gui":
-        return "./pngquant"
+        return "/usr/bin/pngquant"
     elif sys.argv[1] == "--service":
-        return "/Applications/Crunch.app/Contents/Resources/pngquant"
+        return "/usr/bin/pngquant"
     else:
-        return PNGQUANT_CLI_PATH
-
+        return "/usr/bin/pngquant"
 
 def get_zopflipng_path():
     if sys.argv[1] == "--gui":
-        return "./zopflipng"
+        return "/usr/bin/zopflipng"
     elif sys.argv[1] == "--service":
-        return "/Applications/Crunch.app/Contents/Resources/zopflipng"
+        return "/usr/bin/zopflipng"
     else:
-        return ZOPFLIPNG_CLI_PATH
+        return "/usr/bin/zopflipng"
 
 
 def is_gui(arglist):
@@ -487,15 +505,25 @@ def format_ansi_green(text):
 # ///////////////////////
 
 
+
 class ImageFile(object):
-    def __init__(self, filepath):
+    def __init__(self, filepath, output_dir=None):
         self.pre_filepath = filepath
+        self.output_dir = output_dir
         self.post_filepath = self._get_post_filepath()
         self.pre_size = self._get_filesize(self.pre_filepath)
         self.post_size = 0
-
+        
     def _get_filesize(self, file_path):
-        return os.path.getsize(file_path)
+        return os.path.getsize(file_path)        
+
+#    def _get_post_filepath(self):
+#        filename = os.path.basename(self.pre_filepath)
+#        name, extension = os.path.splitext(filename)
+#        if self.output_dir:
+#            return os.path.join(self.output_dir, name + "-crunch" + extension)
+#        else:
+#            return os.path.join(os.path.dirname(self.pre_filepath), name + "-crunch" + extension)
 
     def _get_post_filepath(self):
         path, extension = os.path.splitext(self.pre_filepath)
@@ -504,24 +532,21 @@ class ImageFile(object):
     def get_post_filesize(self):
         self.post_size = self._get_filesize(self.post_filepath)
 
+
     def get_compression_percent(self):
         ratio = float(self.post_size) / float(self.pre_size)
         percent = ratio * 100
         return percent
 
 
+
+def main(args):
+    parser = argparse.ArgumentParser(description="Optimize PNG files")
+    parser.add_argument("png_path", help="Path to the PNG file")
+    parser.add_argument("--output_dir", help="Path to the output directory")
+    args = parser.parse_args()
+
+    optimize_png(args.png_path, args.output_dir)
+
 if __name__ == "__main__":
-    # bugfix for macOS GUI / right-click service filepath issue
-    # when spaces are included in the absolute path to the image
-    # file.  https://github.com/chrissimpkins/Crunch/issues/30
-    # This workaround reconstructs the original filepaths
-    # that are split by the shell script into separate arguments
-    # when there are spaces in the macOS file path
-    if len(sys.argv) > 1 and sys.argv[1] in ("--gui", "--service"):
-        arg_list = fix_filepath_args(sys.argv[1:])
-        main(arg_list)
-    else:
-        # the command line executable assumes that users will appropriately quote
-        # or escape special characters (including spaces) on the command line,
-        # no need for the special parsing treatment above
-        main(sys.argv[1:])
+    main(sys.argv[1:])
